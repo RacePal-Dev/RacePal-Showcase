@@ -87,6 +87,7 @@ Technical documentation:
 - [Operations and recovery](docs/09-OPERATIONS-AND-RECOVERY.md) — packaging, backups, and restore controls.
 - [Engineering guidebook](docs/10-ENGINEERING-GUIDEBOOK.md) — documentation hierarchy and implementation lifecycle.
 - [Development case study](docs/11-DEVELOPMENT-CASE-STUDY.md) — staged evolution from local workflows to hosted processing.
+- [Public documentation maintenance](docs/13-PUBLIC-DOCUMENTATION-MAINTENANCE.md) — controlled updates, publication safeguards, and review policy.
 
 ## Repository structure
 
