@@ -8,11 +8,29 @@ This repository documents the product, module architecture, delivery practices, 
 
 [Architecture](docs/02-ARCHITECTURE.md) · [Product scope](docs/01-PRODUCT-SCOPE.md) · [Development workflow](docs/03-ENGINEERING-WORKFLOW.md) · [Agentic development](docs/05-AGENTS-AND-AUTOMATION.md) · [Software architecture & AI-assisted development](docs/12-SOFTWARE-ARCHITECTURE-AND-AI-ASSISTED-DEVELOPMENT.md) · [Current status](docs/08-DELIVERY-STATUS.md)
 
-## Desktop application — early development snapshot
+## Desktop application — local demo (October 2026)
+
+These screenshots were captured from the **real Windows Presentation Foundation (WPF) desktop application** compiled from the private RacePal codebase using .NET 10. The demonstration runs in isolated **TEST STORAGE**, using fictional identities, circuits, kart details, setups, and sessions. These screens demonstrate local metadata workflows, **not** live hosted telemetry processing, measured lap times, or production deployment.
+
+### Session management
+
+![RacePal local desktop workspace with a metadata-only demo session linked to a fictional driver, circuit, kart and versioned setup](assets/screenshots/desktop-session-management.png)
+
+*The project workspace connects a driver, a circuit, and a kart configuration version to a metadata-only karting session.*
+
+### Versioned kart configurations and data provenance
+
+![RacePal versioned kart setup, showing immutable v1 and v2, usage by one session, and Estimated / Low provenance for fictional values](assets/screenshots/versioned-kart-configuration.png)
+
+*The configuration view displays historical immutable setup snapshots and session usage. Synthetic v2 values are explicitly tagged as estimates with low confidence.*
+
+[Browse the 18 additional development walkthrough screenshots](assets/screenshots/showcase/README.md) — driver, kart and circuit editors, session prerequisites, intermediate UI states, and configuration-version inspection.
+
+### Historical desktop foundation (Phase 0)
 
 ![RacePal desktop application showing the Phase 0 Overview screen and foundation navigation](assets/screenshots/desktop-foundation-phase0.png)
 
-*Historical screenshot (July 2026): the initial Windows Presentation Foundation (WPF) desktop shell during Phase 0. This illustrates the early navigation and application foundation, not the current feature set or deployment status. See [Development status](docs/08-DELIVERY-STATUS.md) for the staged implementation status.*
+*Historical screenshot (July 2026): the initial desktop shell during Phase 0. Retained as a development milestone rather than a representation of the current feature set.*
 
 ## System overview
 

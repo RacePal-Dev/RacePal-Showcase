@@ -32,10 +32,13 @@ for f in sorted(ROOT.rglob('*')):
     if f.stat().st_size > 500_000:
         errors.append(f'{f.relative_to(ROOT)}: unexpectedly large file')
         continue
-    # The showcase permits only sanitized, bounded PNG screenshots in one public asset directory.
+    # The showcase permits only sanitized, bounded PNG screenshots in the curated asset folder and the dedicated showcase archive.
     if f.suffix.lower() == '.png':
         rel=f.relative_to(ROOT)
-        if len(rel.parts) != 3 or rel.parts[:2] != ('assets', 'screenshots'):
+        if not (
+            (len(rel.parts) == 3 and rel.parts[:2] == ('assets', 'screenshots'))
+            or (len(rel.parts) == 4 and rel.parts[:3] == ('assets', 'screenshots', 'showcase'))
+        ):
             errors.append(f'{rel}: PNG images are restricted to assets/screenshots/')
         else:
             data=f.read_bytes()
