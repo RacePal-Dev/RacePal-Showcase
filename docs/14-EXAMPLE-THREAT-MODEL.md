@@ -1,46 +1,47 @@
 # Security design and concise threat model
 
-**Scope.** RacePal is a pre-release desktop/hosted platform. This page distinguishes high-level **private product architecture** from the independently authored [public API example](../examples/README.md). The example is not production-ready and does not reproduce proprietary source. No claim of deployed protection is made solely from this document.
+**Scope.** RacePal is a pre-release desktop/hosted platform. This page distinguishes high-level **private product architecture** from the independently authored [public API example](../examples/README.md). The example is not production-ready and does not reproduce proprietary source.
 
 ## Assets and trust boundaries
 
-| Asset | Trust boundary | Relevant control |
+| Asset | Trust boundary | Control or design |
 | --- | --- | --- |
-| Organization-scoped sessions and observations | Desktop → hosted API | Authenticate caller; authorize resource access per tenant on the server |
-| Customer telemetry and imported files | Untrusted files → parser/worker | Validate structure, lengths, ranges, sizes and parser resource budgets |
-| PostgreSQL records | API/service → database | Parameterized SQL, constrained DB role, organization-scoped reads |
-| Credentials, signing keys and API tokens | Secrets manager → runtime | Never commit; restrict access, redact logs, rotate after exposure |
-| Processing results | Worker → persistent artifacts | Durable job state, versioning, integrity and authorization |
+| Organization-scoped records | Desktop → hosted API | Authenticate caller; authorize access per tenant on server |
+| Customer telemetry and files | Untrusted files → parser/worker | Validate structure, lengths, sizes, bounds and parser resource budgets |
+| PostgreSQL data | API → database | Parameterized SQL, constrained DB role, organization-scoped reads |
+| Credentials and signing keys | Secret manager → runtime | Do not commit, restrict access, redact logs, rotate if disclosed |
+| Processing results | Worker → persistent artifact | Durable job status, versioning and scoped retrieval |
 
 ## Authentication and authorization
 
-The [standalone example](../examples/LapNotes.Api/Program.cs) configures JWT bearer authentication using an external HTTPS identity provider. The API validates the token's issuer, audience, signature and lifetime via ASP.NET Core JWT middleware. Its data endpoints require authorization. An `org_id` claim is read from the *validated* token; the caller cannot select the organization through URL or JSON. Database reads include `organization_id = @organization_id` and return 404 for missing/out-of-scope resources.
+The [standalone example API](../examples/LapNotes.Api/Program.cs) configures JWT bearer authentication against an external HTTPS issuer. ASP.NET Core's JWT middleware validates token signature, issuer, audience and lifetime. Data routes require authenticated callers; a trusted `org_id` claim is read from the validated token, not accepted from the client body or URL. SQL reads are scoped with `organization_id = @organization_id` and return 404 for unknown or out-of-scope identifiers.
 
-**Caveat:** The example assumes the configured trusted issuer is authorized to assign `org_id` claims. This relationship must be verified for any real integration. No identity provider, authorization server, real token, or production role model is distributed here. RacePal's documented hosted design uses OpenID Connect (OIDC) and Proof Key for Code Exchange (PKCE) for its clients, alongside server-side authorization; this example is not its login client.
+This assumes the external issuer is trusted to assign organization claims correctly. The public sample does **not** implement an identity provider, token issuance, full production authorization, or the proprietary RacePal login process. The private product design describes OIDC and PKCE for relevant client authentication flows, but that architecture is not reproduced here.
 
-## Input, storage and secrets
+## Input, persistence and secrets
 
-- The example validates label length and duration bounds; its database schema repeats constraints for defense in depth.
-- SQL values are bound via Npgsql parameters, not string concatenation.
-- Tenant identifiers come from validated authentication claims. The service uses cancellation-aware asynchronous I/O.
-- Connection strings and issuer/audience settings are supplied outside the repository via environment configuration or a managed secret store. No access credentials or signing keys are embedded.
-- In deployed systems, use a least-privileged PostgreSQL role, TLS, access controls, operational rate limits, restricted CORS, telemetry-safe audit logs and secure backup retention.
-- The showcase uses CI content checks and Gitleaks as automated checks. They do **not** guarantee that a repository or its history contains no secrets. GitHub native secret scanning/push protection, when available, must be enabled separately in repository security settings.
+- Range and length validation occurs before storage; PostgreSQL schema constraints provide defense in depth.
+- Npgsql binds typed parameters instead of constructing SQL with string concatenation.
+- The sample handles cancellation-aware async database I/O and excludes organization identifiers from response objects.
+- Runtime connection strings and issuer/audience settings are supplied outside source control, through environment configuration or a dedicated secret manager.
+- Deployment hardening still requires least-privileged database roles, TLS, CORS restrictions, rate limiting, request size limits, exception mapping, logging safeguards, and backup/access controls.
+- Gitleaks checks the available Git history in CI; the public file validator adds basic pattern checks. Neither can guarantee a secret-free history. GitHub native secret scanning and push protection should also be enabled when available.
 
-## Threat scenarios and residual risks
+## Threats, controls and remaining risk
 
-| Threat | Mitigation | Residual risk / further verification |
+| Threat | Demonstrated / proposed control | Remaining work |
 | --- | --- | --- |
-| Forged or expired bearer token | HTTPS issuer metadata and JWT signature, issuer, audience and expiry validation | Identity-provider compromise, wrong trust configuration; integration tests required |
-| Horizontal access across organizations (IDOR/BOLA) | Server-derived organization claim and tenant-scoped SQL predicate | Every future endpoint requires the same authorization pattern; integration coverage pending |
-| SQL injection | Parameterized SQL commands and typed inputs | Validate all query shape changes; test storage layer against PostgreSQL |
-| Malformed or oversized inputs | Input validation plus database checks | Rate limits and request-body size limits require deployment configuration |
-| Secret accidentally committed | Secret separation, Gitleaks, reviewer checks, GitHub native protection if enabled | Scan results are imperfect; rotate affected credentials and handle Git history |
-| Compromised dependency or CI supply chain | Dependency audit and read-only workflow permissions | Patch and pin dependencies/actions; review advisories and build provenance |
-| Information leakage through logs/errors | Generic HTTP errors; avoid sensitive payload logging | Application-level exception handling and structured redaction still needed |
+| Forged/expired bearer token | JWT middleware with HTTPS authority, audience and signature/lifetime validation | Real identity provider and end-to-end auth tests |
+| Broken object-level authorization (BOLA/IDOR) | Validated tenant claim and tenant-filtered SQL query | Ensure every production endpoint is scoped; role permissions |
+| SQL injection | Npgsql parameters; PostgreSQL integration test with SQL metacharacters | Review future dynamic query shapes |
+| Cross-tenant information exposure | PostgreSQL test proving a different org cannot retrieve another org's record | Tests for full HTTP surface and admin/service privileges |
+| Oversized or hostile input | Input checks and PostgreSQL constraints | Operational request limits, flood protection |
+| Leaked secret | Secret separation, manual review, CI history scan | Rotation, Git history remediation and native push protection |
+| Dependency compromise | Pinned package versions and minimal workflow privileges | Patch cadence, alerts, provenance and dependency audits |
+| Sensitive logs or errors | No private data in this example's responses | Generic error mapping and operational redaction |
 
-## Evidence and limits
+## Evidence and limitation
 
-- [Code](../examples/LapNotes.Api/Program.cs), [database adapter](../examples/LapNotes.Api/PostgresLapNoteStore.cs), [SQL schema](../examples/LapNotes.Api/schema.sql) and [unit tests](../examples/LapNotes.Tests/ValidationTests.cs) are directly inspectable.
-- CI verifies compilation and unit tests for the reference project. These do **not** demonstrate PostgreSQL integration test coverage, configured external login, penetration testing, or deployed security controls.
-- The private application's exact source, routes, deployment topology, algorithms and test environment remain undisclosed.
+Review the [API](../examples/LapNotes.Api/Program.cs), [PostgreSQL adapter](../examples/LapNotes.Api/PostgresLapNoteStore.cs), [schema](../examples/LapNotes.Api/schema.sql), [unit tests](../examples/LapNotes.Tests/ValidationTests.cs) and [PostgreSQL integration tests](../examples/LapNotes.IntegrationTests/PostgresIsolationTests.cs).
+
+CI validates the sample build, unit tests and database behavior, but does **not** validate production deployment, actual identity-provider login, real telemetry ingestion, penetration resistance, or the private application's internal implementation.

@@ -1,27 +1,38 @@
 # Standalone .NET example — LapNotes
 
-This is a small, original and **independently authored** demonstration for code review. It is **not extracted** from RacePal's proprietary private implementation and does not expose its internal endpoints, algorithms, domain contracts, or infrastructure. It illustrates transferable C#/.NET engineering techniques, not proof that the private RacePal server runs these exact files.
+This small .NET 10 reference project was **independently authored for the public showcase**. It is not extracted from RacePal's private implementation and does not reveal private endpoints, algorithms, application contracts, or infrastructure. It demonstrates transferable engineering techniques.
 
-## What's inside
+## Reviewable code
 
-- [Minimal ASP.NET Core API](LapNotes.Api/Program.cs): JWT bearer authentication and authorization, request validation, claim-derived organization scoping, and HTTP 201/404/403 semantics.
-- [PostgreSQL data access](LapNotes.Api/PostgresLapNoteStore.cs): asynchronous Npgsql commands with parameterized queries and organization-scoped reads.
-- [Schema](LapNotes.Api/schema.sql): minimal fictional record table and range constraint.
-- [Unit tests](LapNotes.Tests/ValidationTests.cs): xUnit tests for boundary values and organization-claim input.
+- [Minimal ASP.NET Core API](LapNotes.Api/Program.cs): external JWT bearer authentication, server-derived organization scope, validation and HTTP responses.
+- [PostgreSQL adapter](LapNotes.Api/PostgresLapNoteStore.cs): asynchronous Npgsql commands, bound SQL parameters, and tenant-scoped reads.
+- [SQL schema](LapNotes.Api/schema.sql): minimal fictional records and an input range constraint.
+- [Unit tests](LapNotes.Tests/ValidationTests.cs): xUnit input-boundary and tenant-claim tests.
+- [PostgreSQL integration tests](LapNotes.IntegrationTests/PostgresIsolationTests.cs): actual database tests for cross-tenant isolation and SQL-injection-safe parameters.
 
-## Run the checks
+## Run tests
 
-With .NET 10 SDK installed:
+Install .NET 10 SDK. Unit tests need no database:
 
 ```powershell
 dotnet test examples/LapNotes.Tests/LapNotes.Tests.csproj -c Release
 ```
 
-To run the API, provision a local PostgreSQL database, apply `schema.sql`, and set these configuration values **outside this repository**:
+For integration tests, provision a **disposable** local PostgreSQL database and configure `LAPNOTES_TEST_POSTGRES` in your environment to its connection string. Never target an operational database. Tests apply the example schema to that database.
 
-- `Auth__Authority` — HTTPS OpenID Connect issuer URL;
-- `Auth__Audience` — expected JWT audience;
-- `ConnectionStrings__DemoDb` — PostgreSQL connection string supplied through environment variables or a secret manager.
+```powershell
+dotnet test examples/LapNotes.IntegrationTests/LapNotes.IntegrationTests.csproj -c Release
+```
+
+GitHub Actions provisions PostgreSQL 17 in an ephemeral service container and runs both test suites automatically.
+
+## Run the API
+
+Provision PostgreSQL separately, apply `LapNotes.Api/schema.sql`, and configure (outside this repository):
+
+- `Auth__Authority`: trusted HTTPS OpenID Connect issuer;
+- `Auth__Audience`: expected JWT audience;
+- `ConnectionStrings__DemoDb`: PostgreSQL connection string, supplied via a local secret store or environment variable.
 
 Then:
 
@@ -29,12 +40,12 @@ Then:
 dotnet run --project examples/LapNotes.Api/LapNotes.Api.csproj
 ```
 
-The `GET /health/live` route is public. All `/api/demo/lap-notes` routes require a valid JWT from the configured issuer, carrying a trusted `org_id` claim. No sample token, password, signing secret, identity-provider setup, or live database is included. A ready-to-run authenticated integration environment is intentionally **out of scope**.
+`GET /health/live` is public. `POST /api/demo/lap-notes` and `GET /api/demo/lap-notes/{id}` require a valid token issued by the configured identity provider with a trusted `org_id` claim. No live database, client credentials, signing key, or real identity-provider configuration is included.
 
-## Limits
+## Boundaries
 
-- The unit tests do not prove end-to-end JWT issuance, PostgreSQL integration, database availability, or authorization in a deployed service; those require separate integration tests.
-- Real production APIs need central exception handling, rate limiting, observability, migrations, least-privileged database roles, and integration/load tests.
-- These manually entered fictional lap notes are **not telemetry measurements**.
+- The sample is not telemetry ingestion; it stores fictional manually entered lap notes.
+- CI tests database queries and validation but not end-to-end JWT issuance, API authorization with real tokens, deployment, performance or penetration testing.
+- A production service would also need migrations, operational rate limits, auditing, exception mapping, strict request limits and deployment controls.
 
-Read the [example threat model](../docs/14-EXAMPLE-THREAT-MODEL.md).
+See the [security threat model](../docs/14-EXAMPLE-THREAT-MODEL.md).

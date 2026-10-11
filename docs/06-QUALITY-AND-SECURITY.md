@@ -2,17 +2,18 @@
 
 ## Private product
 
-The privately developed RacePal project uses staged test and build gates, architecture checks, application-level authorization design and dependency review. These statements describe engineering practices, not proof that every deployment or recovery test is complete. See [Delivery status](08-DELIVERY-STATUS.md) for maturity.
+RacePal's private engineering project includes staged build/test gates, architecture checks, server-side authorization design and dependency review. These are documented practices, not a claim that every release or live deployment is complete. See [Delivery status](08-DELIVERY-STATUS.md).
 
 ## This public repository
 
-CI includes:
-- a public-content scan for disallowed files, image bounds, likely credentials and broken local links;
-- .NET 10 build and xUnit unit tests for the **independently authored** [reference API](../examples/README.md);
-- Gitleaks secret scanning across repository history.
+CI runs:
+- public-content validation for disallowed files, bounded screenshots, obvious credentials and broken links;
+- .NET 10 compilation and 17 xUnit unit test cases for the independent [reference API](../examples/README.md);
+- PostgreSQL 17 integration tests exercising organization isolation and SQL parameterization with a disposable database;
+- Gitleaks scanning the available Git history for likely secrets.
 
-Gitleaks and the baseline regex scan supplement manual review; neither proves that sensitive code, data or credentials cannot leak. Native GitHub secret scanning / push protection must be configured separately when available.
+CI scan results supplement, not replace, manual source, license, privacy and history review. GitHub native secret scanning and push protection require separate repository settings and are not claimed as enabled.
 
-## Threat modeling and executable evidence
+## Threat modeling
 
-See the [short threat model](14-EXAMPLE-THREAT-MODEL.md) for authentication, tenant scoping, untrusted inputs, parameterized PostgreSQL access, secret handling, mitigations and residual risks. The [sample tests](../examples/LapNotes.Tests/ValidationTests.cs) verify validation and claim-format boundaries only; they do not exercise an actual PostgreSQL instance or an external identity provider.
+See [Security design and threat model](14-EXAMPLE-THREAT-MODEL.md) for JWT/OIDC assumptions, tenant scoping, input validation, PostgreSQL access, secrets and residual risks. The PostgreSQL tests do not constitute end-to-end real-issuer authorization tests or penetration testing.
