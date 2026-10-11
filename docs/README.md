@@ -14,3 +14,4 @@
 | [10 — Engineering guidebook](10-ENGINEERING-GUIDEBOOK.md) | Requirements-to-verification working model |
 | [11 — Development case study](11-DEVELOPMENT-CASE-STUDY.md) | Staged local-to-hosted architecture evolution |
 | [12 — Software architecture & AI-assisted development](12-SOFTWARE-ARCHITECTURE-AND-AI-ASSISTED-DEVELOPMENT.md) | Engineering ownership, tool and agent configuration, delegated work, review gates, and technical examples |
+| [13 — Public documentation maintenance](13-PUBLIC-DOCUMENTATION-MAINTENANCE.md) | Safe update selection, disclosure boundaries, draft reviews, and publication approval |
