@@ -1,130 +1,85 @@
 # RacePal
 
-**Karting telemetry and performance intelligence, built around reproducible analysis and a server-authoritative architecture.**
+RacePal is a pre-release karting telemetry and performance-analysis platform. It combines a native Windows desktop application with staged hosted .NET services for ingestion and deterministic analysis.
 
-RacePal is a pre-release software platform for importing motorsport session data, validating telemetry, and supporting deterministic performance analysis. It combines a native Windows client with a hosted .NET API, durable background processing, and distinct local and hosted storage layers.
+![RacePal desktop workspace with a fictional driver, circuit, kart and metadata-only session](assets/screenshots/desktop-session-management.png)
 
-This repository documents the product, module architecture, delivery practices, and engineering decisions. The application implementation is maintained privately: the public source tree contains module descriptions, not the proprietary C# implementation.
+*Actual WPF desktop application, October 2026, running against isolated TEST STORAGE with fictional data. This is a metadata-only session, not a processed telemetry result.*
 
-[Architecture](docs/02-ARCHITECTURE.md) · [Product scope](docs/01-PRODUCT-SCOPE.md) · [Development workflow](docs/03-ENGINEERING-WORKFLOW.md) · [Agentic development](docs/05-AGENTS-AND-AUTOMATION.md) · [Software architecture & AI-assisted development](docs/12-SOFTWARE-ARCHITECTURE-AND-AI-ASSISTED-DEVELOPMENT.md) · [Current status](docs/08-DELIVERY-STATUS.md)
+## At a glance
 
-## Desktop application — local demo (October 2026)
+| Area | Technologies / approach |
+| --- | --- |
+| Windows client | C#, .NET 10, Windows Presentation Foundation (WPF), SQLite |
+| Hosted backend | ASP.NET Core, PostgreSQL, background Worker |
+| Engineering | Modular architecture, tests, GitHub Actions, code review |
+| Security | OIDC/PKCE design, server-side tenant authorization, defensive input handling |
 
-These screenshots were captured from the **real Windows Presentation Foundation (WPF) desktop application** compiled from the private RacePal codebase using .NET 10. The demonstration runs in isolated **TEST STORAGE**, using fictional identities, circuits, kart details, setups, and sessions. These screens demonstrate local metadata workflows, **not** live hosted telemetry processing, measured lap times, or production deployment.
+The platform is not a production release. Hosted components and analysis features have staged implementation and validation statuses; see [delivery status](docs/08-DELIVERY-STATUS.md).
 
-### Session management
+## Code you can inspect
 
-![RacePal local desktop workspace with a metadata-only demo session linked to a fictional driver, circuit, kart and versioned setup](assets/screenshots/desktop-session-management.png)
+[**Standalone ASP.NET Core + PostgreSQL example**](examples/README.md) — a small, independently authored, runnable reference showing:
 
-*The project workspace connects a driver, a circuit, and a kart configuration version to a metadata-only karting session.*
+- JWT bearer authentication and authorization with a server-derived organization scope.
+- A PostgreSQL repository using parameterized queries and async I/O.
+- Request validation and xUnit unit tests, checked in CI.
 
-### Versioned kart configurations and data provenance
+This is **not copied from the private RacePal implementation**. It demonstrates engineering patterns, rather than revealing application internals or proving the full production stack. Run its unit tests with:
 
-![RacePal versioned kart setup, showing immutable v1 and v2, usage by one session, and Estimated / Low provenance for fictional values](assets/screenshots/versioned-kart-configuration.png)
+```bash
+dotnet test examples/LapNotes.Tests/LapNotes.Tests.csproj -c Release
+```
 
-*The configuration view displays historical immutable setup snapshots and session usage. Synthetic v2 values are explicitly tagged as estimates with low confidence.*
+## Desktop walkthrough
 
-[Browse the 18 additional development walkthrough screenshots](assets/screenshots/showcase/README.md) — driver, kart and circuit editors, session prerequisites, intermediate UI states, and configuration-version inspection.
+![RacePal kart configuration history with v1 and v2, synthetic parameter provenance and session usage](assets/screenshots/versioned-kart-configuration.png)
 
-### Historical desktop foundation (Phase 0)
+*Immutable local kart setup snapshots with version history, one linked demo session, and synthetic values labeled `Estimated · Low`.*
 
-![RacePal desktop application showing the Phase 0 Overview screen and foundation navigation](assets/screenshots/desktop-foundation-phase0.png)
+[18 additional screenshots](assets/screenshots/showcase/README.md) · [Historical Phase 0 desktop](assets/screenshots/desktop-foundation-phase0.png)
 
-*Historical screenshot (July 2026): the initial desktop shell during Phase 0. Retained as a development milestone rather than a representation of the current feature set.*
-
-## System overview
-
-The architecture follows a **modular monolith**, with explicit module responsibilities and a separation between the client and hosted trust boundaries. Local desktop capabilities coexist with an incremental transition to server-authoritative processing.
+## Architecture
 
 ```mermaid
 flowchart LR
-    subgraph Client[Windows client]
-      UI[WPF desktop]
-      Local[Local application services]
-      SQLite[(SQLite)]
-      UI --> Local
-      Local --> SQLite
-    end
-    subgraph Hosted[Hosted services]
-      API[ASP.NET Core API]
-      Jobs[Durable job state]
-      Worker[Background Worker]
-      DB[(PostgreSQL)]
-      Artifacts[(Versioned artifacts)]
-      API --> Jobs
-      Jobs --> Worker
-      API --> DB
-      Worker --> DB
-      Worker --> Artifacts
-    end
-    UI -->|HTTPS| API
+  subgraph Windows["Windows desktop"]
+    UI["WPF"]
+    Local["Local services"]
+    SQLite[("SQLite")]
+    UI --> Local --> SQLite
+  end
+  subgraph Hosted["Hosted trust boundary"]
+    API["ASP.NET Core API"]
+    Worker["Background worker"]
+    Postgres[("PostgreSQL")]
+    API --> Postgres
+    Worker --> Postgres
+  end
+  UI -->|"Authenticated HTTPS"| API
 ```
 
-The diagram describes high-level component relationships. It intentionally omits private contracts, endpoint details, internal algorithms, and deployment topology.
+This is a conceptual component diagram; the private repository contains the actual application implementation and deployment configuration.
 
-## Capabilities
+## Security and verification
 
-- **Desktop application:** C# / .NET 10 / Windows Presentation Foundation (WPF), with presentation separated from application logic.
-- **Telemetry ingestion:** controlled import, validation, normalization, and defensive handling of untrusted files.
-- **Deterministic analysis:** repeatable computations with explicit provenance and versioned artifacts.
-- **Hosted application layer:** an ASP.NET Core API responsible for authenticated, organization-scoped operations.
-- **Background execution:** a separate Worker and durable job state for processing that should not block an HTTP request.
-- **Data persistence:** SQLite-backed local workflows and PostgreSQL-backed hosted services, with separate ownership boundaries.
-- **Security:** OpenID Connect (OIDC), Proof Key for Code Exchange (PKCE), server-side authorization, and scoped resource access.
+The [security overview and threat model](docs/14-EXAMPLE-THREAT-MODEL.md) explains authentication, trust boundaries, tenant isolation, credentials, and untrusted-input handling, while distinguishing the illustrative API from RacePal's private architecture. Public CI checks the example's .NET tests and scans for likely secrets. Automated checks are not a substitute for manual review.
 
-Capabilities are delivered in stages. The repository does not imply that every planned feature is implemented or publicly deployed; the [delivery status](docs/08-DELIVERY-STATUS.md) records those distinctions.
+## Engineering and development history
 
-## Technology
+The project developer owns architectural decisions, module boundaries, sequencing, reviews and integration. Specialized AI-assisted tooling has supported bounded implementation and verification tasks under human approval.
 
-| Component | Technologies and practices |
-| --- | --- |
-| Desktop | C#, .NET 10, WPF |
-| API | ASP.NET Core, authenticated HTTPS interfaces |
-| Background processing | .NET Worker, durable job execution |
-| Data layer | Entity Framework Core, SQLite, PostgreSQL |
-| Operational packaging | Docker Compose, reverse proxy, explicit migration sequencing |
-| Testing and quality | xUnit, targeted/integration tests, architecture checks |
-| Delivery and security | Git, GitHub, pull requests, GitHub Actions, CodeQL, dependency auditing |
-| Engineering automation | Repository instructions, specialized agents, task approvals, automated verification |
+- [System architecture](docs/02-ARCHITECTURE.md)
+- [Engineering ownership](docs/04-ENGINEERING-OWNERSHIP.md)
+- [Development workflow](docs/03-ENGINEERING-WORKFLOW.md)
+- [Software architecture and AI-assisted development](docs/12-SOFTWARE-ARCHITECTURE-AND-AI-ASSISTED-DEVELOPMENT.md)
+- [Architecture decisions](docs/07-ARCHITECTURE-DECISIONS.md)
+- [Quality and security](docs/06-QUALITY-AND-SECURITY.md)
+- [Product scope](docs/01-PRODUCT-SCOPE.md)
+- [Public delivery status](docs/08-DELIVERY-STATUS.md)
 
-## Architecture and engineering practices
+The [module map](src/README.md) and [test project map](tests/README.md) are descriptive: they contain no proprietary implementation. The only executable C# in this public repository is the clearly separated `examples/` reference.
 
-RacePal development uses staged architectural decisions, documented scope and acceptance criteria, isolated Git branches, reviewable pull requests, and test/security gates. The process is designed to preserve traceability from product requirements to implementation and verification.
+## License and contact
 
-Engineering work is coordinated across the native UI, application services, APIs, asynchronous jobs, telemetry handling, persistence, infrastructure, and testing. AI-assisted implementation is governed by repository instructions and human approval boundaries rather than unrestricted autonomous changes.
-
-Technical documentation:
-
-- [System architecture](docs/02-ARCHITECTURE.md) — components, responsibilities, and trust boundaries.
-- [Engineering workflow](docs/03-ENGINEERING-WORKFLOW.md) — planning, implementation, Git/GitHub, review, and verification.
-- [Engineering ownership](docs/04-ENGINEERING-OWNERSHIP.md) — architectural and development responsibilities.
-- [Software architecture & AI-assisted development](docs/12-SOFTWARE-ARCHITECTURE-AND-AI-ASSISTED-DEVELOPMENT.md) — architectural ownership, agent configuration, delegation, manual review, and controlled integration.
-- [AI agents and automation](docs/05-AGENTS-AND-AUTOMATION.md) — specialized roles, controls, and delivery lifecycle.
-- [Quality and security](docs/06-QUALITY-AND-SECURITY.md) — testing, Continuous Integration (CI), scanning, and threat-oriented design.
-- [Architecture decisions](docs/07-ARCHITECTURE-DECISIONS.md) — selected decisions and rationale.
-- [Operations and recovery](docs/09-OPERATIONS-AND-RECOVERY.md) — packaging, backups, and restore controls.
-- [Engineering guidebook](docs/10-ENGINEERING-GUIDEBOOK.md) — documentation hierarchy and implementation lifecycle.
-- [Development case study](docs/11-DEVELOPMENT-CASE-STUDY.md) — staged evolution from local workflows to hosted processing.
-
-## Repository structure
-
-```text
-.github/     Repository governance, agent profiles, and documentation CI
-src/         Public descriptions of application modules; no source code
-tests/       Public descriptions of test projects; no test implementations
-docs/        Product, architecture, engineering, operations, and status
-samples/     Fictional data examples
-scripts/     Public-content validation
-```
-
-The `src/` and `tests/` layouts mirror the major module and testing boundaries of the private engineering project at a descriptive level. This documentation repository is **not a runnable build**.
-
-## Development status
-
-RacePal is actively developed and remains **pre-release**. Native/local workflows, hosted service components, and automated verification exist in the private codebase. Alpha deployment packaging is present, but packaging and static checks are not equivalent to a completed live deployment or disaster-recovery acceptance. Simulation, optimization, and AI-related product ambitions have separate staged statuses.
-
-The authoritative public capability summary is [Delivery Status](docs/08-DELIVERY-STATUS.md).
-
-## License and security
-
-RacePal is proprietary. This repository does not include the application's source code, production credentials, customer data, unpublished algorithms, or private Git history. All rights are reserved; see [LICENSE](LICENSE). Report sensitive security concerns privately using [SECURITY.md](SECURITY.md).
+RacePal remains proprietary and pre-release. Public accessibility does not authorize reuse of proprietary material; see [LICENSE](LICENSE). Please disclose security concerns privately according to [SECURITY.md](SECURITY.md).

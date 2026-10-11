@@ -2,17 +2,16 @@ RacePal Public Engineering Showcase — Proprietary / View-Only Notice
 
 Copyright (c) 2026 RacePal-Dev. All rights reserved.
 
-These materials are provided for reading and evaluating the RacePal project,
-engineering architecture, and development process. Public availability is not
-an open-source license and does not confer rights to reuse, modify, redistribute,
-commercialize, or incorporate the materials in another project without written
-permission from the applicable rights holders, except where applicable law
-permits otherwise.
+The public architecture documentation, images, and independently authored example
+source files are supplied for viewing and technical evaluation only. Public access
+does not grant a license to reuse, redistribute, commercialize or incorporate them
+into other software except where applicable law permits or the rights holder
+expressly authorizes it.
 
-All product source code and algorithms remain private. Third-party names and
-technologies are referenced for identification and remain subject to their
-respective licenses and trademarks.
+The example under examples/ was authored independently for demonstration and is
+not extracted from the proprietary RacePal application. RacePal's private product
+source, unreleased algorithms and operating environment remain undisclosed.
+
+Third-party technologies and software dependencies retain their own licenses.
 
 THE MATERIALS ARE PROVIDED AS IS, WITHOUT WARRANTY OF ANY KIND.
-
-For permissions or inquiries, contact the repository owner privately.
