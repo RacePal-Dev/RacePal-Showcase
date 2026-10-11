@@ -1,0 +1,27 @@
+# Safe public documentation repo only
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+*.p12
+*.db
+*.sqlite
+*.sqlite3
+*.bak
+*.zip
+*.7z
+*.exe
+*.dll
+*.pdb
+*.bin
+bin/
+obj/
+node_modules/
+__pycache__/
+.pytest_cache/
+.vscode/*
+!.vscode/README.md
+.idea/
+.DS_Store
