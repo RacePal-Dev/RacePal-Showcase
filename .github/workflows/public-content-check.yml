@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -13,9 +14,73 @@ jobs:
     name: Public file/secret baseline check
     runs-on: ubuntu-24.04
     steps:
-      - name: Checkout sanitized showcase
+      - name: Checkout public showcase
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Check public contents and internal Markdown links
+      - name: Check permitted files, screenshots and Markdown links
         run: python3 scripts/check_public_content.py
+
+  dotnet-reference:
+    name: .NET 10 reference example tests
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout public showcase
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install .NET 10 SDK
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+      - name: Run reference unit tests and compile API
+        run: dotnet test examples/LapNotes.Tests/LapNotes.Tests.csproj -c Release --verbosity normal
+
+  postgresql-integration:
+    name: .NET 10 PostgreSQL integration
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      # Ephemeral GitHub Actions container only; never use this connection string outside CI.
+      LAPNOTES_TEST_POSTGRES: "Host=localhost;Port=5432;Database=postgres;Username=postgres;Password=postgres"
+    steps:
+      - name: Checkout public showcase
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install .NET 10 SDK
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+      - name: Test SQL parameterization and organization isolation against PostgreSQL
+        run: dotnet test examples/LapNotes.IntegrationTests/LapNotes.IntegrationTests.csproj -c Release --verbosity normal
+
+  secret-history-scan:
+    name: Gitleaks full-history scan
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout with full git history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Install verified Gitleaks v8.30.1
+        shell: bash
+        run: |
+          curl -fsSL -o gitleaks.tar.gz https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
+          echo '551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  gitleaks.tar.gz' | sha256sum -c -
+          tar -xzf gitleaks.tar.gz gitleaks
+          chmod +x gitleaks
+      - name: Scan repository history (not just current files)
+        run: ./gitleaks git --no-banner --redact --log-opts="--all" .

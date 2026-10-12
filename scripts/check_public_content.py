@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Best-effort safety checks for the stand-alone public showcase. No dependencies."""
+"""Best-effort public file, link, and known-sensitive-pattern checks."""
 from __future__ import annotations
 from pathlib import Path
 import struct
@@ -7,9 +7,10 @@ import re
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-DENY_SUFFIXES = {'.cs','.csproj','.sln','.xaml','.dll','.exe','.pdb','.db','.sqlite','.sqlite3','.pem','.pfx','.p12','.key','.bak','.7z','.zip','.env'}
+DENY_SUFFIXES = {'.sln','.xaml','.dll','.exe','.pdb','.db','.sqlite','.sqlite3','.pem','.pfx','.p12','.key','.bak','.7z','.zip','.env'}
 DENY_NAMES = {'id_rsa','id_ed25519','credentials.json','secrets.json','.gitconfig','appsettings.production.json'}
-SKIP_DIRS = {'.git','__pycache__','.venv','.idea','node_modules'}
+SKIP_DIRS = {'.git','__pycache__','.venv','.idea','node_modules','bin','obj'}
+PUBLIC_CODE_DIRS = {('examples', 'LapNotes.Api'), ('examples', 'LapNotes.Tests'), ('examples', 'LapNotes.IntegrationTests')}
 PATTERNS = [
     ('private key', re.compile(r'-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----')),
     ('GitHub credential', re.compile(r'(?:ghp_|gho_|ghu_|ghs_|ghr_)[A-Za-z0-9_]{20,}')),
@@ -21,20 +22,22 @@ LINK = re.compile(r'!?\[[^\]]*\]\(([^)]+)\)')
 errors=[]
 filecount=0
 for f in sorted(ROOT.rglob('*')):
-    if any(p in SKIP_DIRS for p in f.relative_to(ROOT).parts):
+    rel=f.relative_to(ROOT)
+    if any(p in SKIP_DIRS for p in rel.parts):
         continue
     if not f.is_file():
         continue
     filecount+=1
     if f.suffix.lower() in DENY_SUFFIXES or f.name.lower() in DENY_NAMES or f.name.startswith('.env'):
-        errors.append(f'{f.relative_to(ROOT)}: disallowed file type or name')
+        errors.append(f'{rel}: disallowed file type or name')
+        continue
+    if f.suffix.lower() in {'.cs', '.csproj', '.sql'} and tuple(rel.parts[:2]) not in PUBLIC_CODE_DIRS:
+        errors.append(f'{rel}: code is only permitted in the standalone examples/')
         continue
     if f.stat().st_size > 500_000:
-        errors.append(f'{f.relative_to(ROOT)}: unexpectedly large file')
+        errors.append(f'{rel}: unexpectedly large file')
         continue
-    # The showcase permits only sanitized, bounded PNG screenshots in the curated asset folder and the dedicated showcase archive.
     if f.suffix.lower() == '.png':
-        rel=f.relative_to(ROOT)
         if not (
             (len(rel.parts) == 3 and rel.parts[:2] == ('assets', 'screenshots'))
             or (len(rel.parts) == 4 and rel.parts[:3] == ('assets', 'screenshots', 'showcase'))
@@ -54,10 +57,10 @@ for f in sorted(ROOT.rglob('*')):
     try:
         s=f.read_text(encoding='utf-8')
     except UnicodeError:
-        errors.append(f'{f.relative_to(ROOT)}: binary or invalid UTF-8'); continue
+        errors.append(f'{rel}: binary or invalid UTF-8'); continue
     for title,pattern in PATTERNS:
         if pattern.search(s):
-            errors.append(f'{f.relative_to(ROOT)}: possible {title}')
+            errors.append(f'{rel}: possible {title}')
     if f.suffix.lower()=='.md':
         for raw in LINK.findall(s):
             path=raw.split('#',1)[0].split('?',1)[0]
@@ -65,11 +68,11 @@ for f in sorted(ROOT.rglob('*')):
                 continue
             dest=(f.parent/path).resolve()
             if not dest.is_relative_to(ROOT.resolve()) or not dest.exists():
-                errors.append(f'{f.relative_to(ROOT)}: broken/unsafe link: {raw}')
+                errors.append(f'{rel}: broken/unsafe link: {raw}')
 
 if errors:
     print('PUBLIC CONTENT CHECK FAILED:')
     for e in errors: print(' - '+e)
     sys.exit(1)
-print(f'PUBLIC CONTENT CHECK PASSED: {filecount} files inspected; no flagged types, obvious credentials, or broken relative Markdown links.')
-print('Manual IP/privacy/history review is still required before publication.')
+print(f'PUBLIC CONTENT CHECK PASSED: {filecount} files inspected.')
+print('Manual confidentiality, IP and full-history review is still required.')

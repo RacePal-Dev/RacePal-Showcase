@@ -1,5 +1,5 @@
-# Application module map
+# Private application module map
 
-Each subdirectory documents one major module boundary in RacePal's private C#/.NET solution. The structure describes ownership and separation of concerns without distributing the proprietary source code.
+These directories describe the major module boundaries of RacePal's privately maintained C#/.NET solution. They are **not** a distributable implementation.
 
-The hosted API/Worker, desktop client, application, telemetry, analysis, persistence, and supporting modules are developed in the private repository. The directories here do not contain executable implementation and cannot be built as a solution.
+For runnable, independently authored public code (ASP.NET Core, PostgreSQL and xUnit), see [examples](../examples/README.md). The reference code does not reproduce the product's private API or domain model.

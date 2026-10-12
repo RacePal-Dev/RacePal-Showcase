@@ -1,32 +1,19 @@
-# 06 — Quality, security, and verification strategy
+# Quality, security and verification
 
-## Quality gates in the private repository
+## Private product
 
-- Build/test/format verification for .NET components, including a Windows validation job.
-- Linux-backed PostgreSQL integration testing for applicable hosted persistence behavior.
-- Module/dependency direction and architecture-boundary verification.
-- CodeQL (code scanning / static application security testing), dependency and supply-chain analysis.
-- GitHub pull-request template requiring scope, risk level, verification evidence, and rollback implications.
-- Repository guidance against changing or skipping tests merely to hide failures.
+RacePal's private engineering project includes staged build/test gates, architecture checks, server-side authorization design and dependency review. These are documented practices, not a claim that every release or live deployment is complete. See [Delivery status](08-DELIVERY-STATUS.md).
 
-These controls are evidenced by configuration and engineering history, **not** by a claim that all checks are currently passing or that every release gate is complete.
+## This public repository
 
-## Threat-oriented design themes
+CI runs:
+- public-content validation for disallowed files, bounded screenshots, obvious credentials and broken links;
+- .NET 10 compilation and 17 xUnit unit test cases for the independent [reference API](../examples/README.md);
+- PostgreSQL 17 integration tests exercising organization isolation and SQL parameterization with a disposable database;
+- Gitleaks scanning the available Git history for likely secrets.
 
-| Risk | Architectural treatment |
-| --- | --- |
-| Untrusted local client | Hosted access decisions made server-side |
-| Cross-organization access | Organization/tenant-scoped authorization and resource checks |
-| Malformed imported files | Strict validation, bounds, defensive parsing |
-| Incomplete background work | Durable job state, retry and recovery design |
-| Data integrity | Versioned artifacts and deterministic result identifiers |
-| Credential exposure | Secret separation, sanitized logs, no sample real tokens |
-| Vulnerable dependencies | Central dependency management and automated review |
+CI scan results supplement, not replace, manual source, license, privacy and history review. GitHub native secret scanning and push protection require separate repository settings and are not claimed as enabled.
 
-## Verification vocabulary
+## Threat modeling
 
-**Tested in repository** ≠ **deployed** ≠ **observed healthy in production**. This distinction is especially important for hosted operations, recovery drills, and environmental configurations.
-
-## Security of this showcase
-
-No private application code, connection strings, credentials, full API routes, proprietary numerical contracts, production telemetry, or raw deployment topology are reproduced. The public CI checks for some disallowed files and common credential patterns but cannot prove zero sensitive disclosures. A human publication review remains mandatory.
+See [Security design and threat model](14-EXAMPLE-THREAT-MODEL.md) for JWT/OIDC assumptions, tenant scoping, input validation, PostgreSQL access, secrets and residual risks. The PostgreSQL tests do not constitute end-to-end real-issuer authorization tests or penetration testing.
