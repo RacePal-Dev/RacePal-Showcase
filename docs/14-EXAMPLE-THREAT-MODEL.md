@@ -7,7 +7,7 @@
 | Asset | Trust boundary | Control or design |
 | --- | --- | --- |
 | Organization-scoped records | Desktop → hosted API | Authenticate caller; authorize access per tenant on server |
-| Customer telemetry and files | Untrusted files → parser/worker | Validate structure, lengths, sizes, bounds and parser resource budgets |
+| Customer telemetry and files | Untrusted files → parser/worker | Private ingestion is not disclosed; an [independent synthetic CSV example](../examples/SyntheticTelemetry.Parser/README.md) demonstrates bounded input and fail-closed parsing |
 | PostgreSQL data | API → database | Parameterized SQL and organization-scoped reads; constrained DB role recommended but not implemented in the sample |
 | Credentials and signing keys | Secret manager → runtime | Do not commit, restrict access, redact logs, rotate if disclosed |
 | Processing results | Worker → persistent artifact | Durable job status, versioning and scoped retrieval |
@@ -17,6 +17,10 @@
 The [standalone example API](../examples/LapNotes.Api/Program.cs) configures JWT bearer authentication against an external HTTPS issuer. ASP.NET Core's JWT middleware validates token signature, issuer, audience and lifetime. Data routes require authenticated callers; a trusted `org_id` claim is read from the validated token, not accepted from the client body or URL. SQL reads are scoped with `organization_id = @organization_id` and return 404 for unknown or out-of-scope identifiers. The route group's named authorization policy rejects missing, duplicate and malformed `org_id` claims.
 
 This assumes the external issuer is trusted to assign organization claims correctly. The public sample does **not** implement an identity provider, full production authorization, or the proprietary RacePal login process. [HTTP tests](../examples/LapNotes.Tests/HttpSecurityTests.cs) use throwaway RSA signing keys and in-process issuer metadata to exercise JWT validation without contacting an external identity provider. The private product design describes OIDC and PKCE for relevant client authentication flows, but that architecture is not reproduced here.
+
+## Independently authored file-parsing reference
+
+The separate [synthetic parser](../examples/SyntheticTelemetry.Parser/README.md) operates on a fabricated CSV layout, unrelated to actual RacePal or vendor telemetry. It demonstrates a 64 KiB input budget, 512-row cap, bounded line length, strict UTF-8, numeric/range checks, cancellation support, timestamp ordering, and structured failure reporting that avoids reflecting attacker input. Unit tests include malformed and seeded randomized bytes. This is **not** an integration test of the private telemetry ingestion pipeline; it does not establish actual per-request upload limits or CPU-time quotas for a deployed service.
 
 ## Input, persistence and secrets
 

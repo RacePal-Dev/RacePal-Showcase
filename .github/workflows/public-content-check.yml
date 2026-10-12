@@ -36,6 +36,21 @@ jobs:
       - name: Run reference unit tests and compile API
         run: dotnet test examples/LapNotes.Tests/LapNotes.Tests.csproj -c Release --verbosity normal
 
+  synthetic-file-parser:
+    name: .NET 10 synthetic parser robustness tests
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout public showcase
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install .NET 10 SDK
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+      - name: Execute synthetic telemetry parser tests
+        run: dotnet test examples/SyntheticTelemetry.Tests/SyntheticTelemetry.Tests.csproj -c Release --verbosity normal
+
   postgresql-integration:
     name: .NET 10 PostgreSQL integration
     runs-on: ubuntu-24.04

@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DENY_SUFFIXES = {'.sln','.xaml','.dll','.exe','.pdb','.db','.sqlite','.sqlite3','.pem','.pfx','.p12','.key','.bak','.7z','.zip','.env'}
 DENY_NAMES = {'id_rsa','id_ed25519','credentials.json','secrets.json','.gitconfig','appsettings.production.json'}
 SKIP_DIRS = {'.git','__pycache__','.venv','.idea','node_modules','bin','obj'}
-PUBLIC_CODE_DIRS = {('examples', 'LapNotes.Api'), ('examples', 'LapNotes.Tests'), ('examples', 'LapNotes.IntegrationTests')}
+PUBLIC_CODE_DIRS = {('examples', 'LapNotes.Api'), ('examples', 'LapNotes.Tests'), ('examples', 'LapNotes.IntegrationTests'), ('examples', 'SyntheticTelemetry.Parser'), ('examples', 'SyntheticTelemetry.Tests')}
 PATTERNS = [
     ('private key', re.compile(r'-----BEGIN (?:RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----')),
     ('GitHub credential', re.compile(r'(?:ghp_|gho_|ghu_|ghs_|ghr_)[A-Za-z0-9_]{20,}')),
