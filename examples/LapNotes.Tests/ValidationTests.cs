@@ -1,3 +1,4 @@
+using System.Text.Json;
 using LapNotes.Api;
 using Xunit;
 
@@ -9,8 +10,13 @@ public sealed class ValidationTests
     [InlineData("Kart 12", 60_000)]
     [InlineData(" R42 ", 15_000)]
     [InlineData("Kart-1", 600_000)]
+    [InlineData("Kart-40", 15_000)]
     public void Accepts_valid_fictional_lap_notes(string name, int duration) =>
         Assert.Null(LapNoteValidator.Validate(new CreateLapNoteRequest(name, duration)));
+
+    [Fact]
+    public void Accepts_exactly_forty_characters() =>
+        Assert.Null(LapNoteValidator.Validate(new CreateLapNoteRequest(new string('x', 40), 60_000)));
 
     [Theory]
     [InlineData(null, 60_000)]
@@ -42,10 +48,14 @@ public sealed class ValidationTests
         Assert.False(OrganizationScope.IsValid(organization));
 
     [Fact]
-    public void Response_omits_organization_claim() =>
-        Assert.Equal(
-            "Kart 12",
-            LapNoteResponse.From(new LapNote(
-                Guid.NewGuid(), "private-tenant", "Kart 12", 60_000, DateTimeOffset.UtcNow))
-                .KartLabel);
+    public void Response_omits_organization_claim()
+    {
+        var response = LapNoteResponse.From(new LapNote(
+            Guid.NewGuid(), "private-tenant", "Kart 12", 60_000, DateTimeOffset.UtcNow));
+
+        var serialized = JsonSerializer.Serialize(response);
+        Assert.DoesNotContain("private-tenant", serialized);
+        Assert.DoesNotContain("OrganizationId", serialized);
+        Assert.DoesNotContain("organizationId", serialized);
+    }
 }

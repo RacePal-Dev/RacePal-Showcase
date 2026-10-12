@@ -1,3 +1,5 @@
+using System.Security.Claims;
+
 namespace LapNotes.Api;
 
 public static class LapNoteValidator
@@ -19,8 +21,19 @@ public static class LapNoteValidator
 
 public static class OrganizationScope
 {
-    // Only a trusted JWT's validated org_id claim is accepted, never a client body/query parameter.
     public static bool IsValid(string? value) =>
         value is { Length: >= 3 and <= 64 }
         && value.All(ch => char.IsAsciiLetterOrDigit(ch) || ch is '-' or '_');
+
+    // Reject duplicate org_id claims instead of silently trusting FindFirst().
+    public static bool TryGetSingle(ClaimsPrincipal? principal, out string? organizationId)
+    {
+        organizationId = null;
+        var claims = principal?.FindAll("org_id").Take(2).ToArray();
+        if (claims is not { Length: 1 } || !IsValid(claims[0].Value))
+            return false;
+
+        organizationId = claims[0].Value;
+        return true;
+    }
 }
