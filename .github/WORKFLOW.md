@@ -1,4 +1,4 @@
-# Repository workflow
+# GitHub repository workflow
 
 This directory contains public maintenance instructions, a pull-request template, a content-safety workflow and sanitized examples of agent-role guidance.
 

@@ -6,6 +6,12 @@ RacePal is a pre-release karting telemetry and performance-analysis platform. It
 
 *Actual WPF desktop application, October 2026, running against isolated TEST STORAGE with fictional data. This is a metadata-only session, not a processed telemetry result.*
 
+## Engineering highlights
+
+- **Local desktop:** a working .NET 10 WPF interface for drivers, karts, circuits, session metadata, and versioned setups.
+- **Reviewable backend sample:** an independently authored ASP.NET Core API with parameterized PostgreSQL queries, 17 xUnit tests, and 2 PostgreSQL integration tests.
+- **Security by design:** JWT validation, organization-scoped database access, documented trust boundaries, and CI secret scanning. The sample is not the proprietary RacePal server.
+
 ## At a glance
 
 | Area | Technologies / approach |
@@ -72,6 +78,7 @@ The project developer owns architectural decisions, module boundaries, sequencin
 - [System architecture](docs/02-ARCHITECTURE.md)
 - [Engineering ownership](docs/04-ENGINEERING-OWNERSHIP.md)
 - [Development workflow](docs/03-ENGINEERING-WORKFLOW.md)
+- [GitHub repository workflow and CI configuration](.github/WORKFLOW.md)
 - [Software architecture and AI-assisted development](docs/12-SOFTWARE-ARCHITECTURE-AND-AI-ASSISTED-DEVELOPMENT.md)
 - [Architecture decisions](docs/07-ARCHITECTURE-DECISIONS.md)
 - [Quality and security](docs/06-QUALITY-AND-SECURITY.md)
