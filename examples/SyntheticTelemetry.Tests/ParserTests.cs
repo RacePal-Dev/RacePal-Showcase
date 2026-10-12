@@ -192,7 +192,7 @@ public sealed class ParserTests
         protected override void Dispose(bool disposing)
         {
             if (disposing) _inner.Dispose();
-            base.Dispose(disposing: disposing);
+            base.Dispose(disposing);
         }
     }
 }

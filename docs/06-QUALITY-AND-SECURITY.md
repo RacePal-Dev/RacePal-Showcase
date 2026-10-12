@@ -10,6 +10,7 @@ CI runs:
 - public-content validation for disallowed files, bounded screenshots, obvious credentials and broken links;
 - .NET 10 compilation, xUnit input/HTTP/JWT security tests for the independent [reference API](../examples/README.md);
 - PostgreSQL 17 integration tests exercising organization isolation and SQL parameterization with a disposable database;
+- standalone synthetic CSV parser tests for malformed bytes, resource budgets, invalid values, monotonic timestamps and reproducible randomized inputs;
 - Gitleaks scanning the available Git history for likely secrets.
 
 CI scan results supplement, not replace, manual source, license, privacy and history review. GitHub native secret scanning and push protection require separate repository settings and are not claimed as enabled.

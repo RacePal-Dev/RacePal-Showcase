@@ -11,6 +11,7 @@ RacePal is a pre-release karting telemetry and performance-analysis platform. It
 - **Local desktop:** a working .NET 10 WPF interface for drivers, karts, circuits, session metadata, and versioned setups.
 - **Reviewable backend sample:** an independently authored ASP.NET Core API with JWT authorization, HTTP security tests, and PostgreSQL integration tests.
 - **Security by design:** JWT validation, organization-scoped database access, documented trust boundaries, and CI secret scanning. The sample is not the proprietary RacePal server.
+- **Secure file processing:** a separate synthetic telemetry CSV parser with explicit byte/row/line budgets and hostile-input tests.
 
 ## What this public repository proves
 
@@ -18,6 +19,7 @@ RacePal is a pre-release karting telemetry and performance-analysis platform. It
 | --- | --- |
 | Independently authored ASP.NET Core endpoints with HTTP/JWT boundary tests | Source code of the private RacePal hosted API |
 | Parameterized SQL and PostgreSQL integration tests | Deployed PostgreSQL roles, row-level security (RLS), or production infrastructure |
+| Bounded parsing of a **fictional CSV format** and deterministic hostile-byte tests | The proprietary RacePal telemetry parser or support for real ALFANO file formats |
 | Actual WPF desktop screenshots with clearly fictional data | Public WPF source, telemetry processing results, or live deployment |
 | GitHub Actions, xUnit, full-history Gitleaks scans | Penetration testing or a real identity-provider integration |
 
@@ -36,11 +38,13 @@ The platform is not a production release. Hosted components and analysis feature
 
 ## Code you can inspect
 
-[**Standalone ASP.NET Core + PostgreSQL example**](examples/README.md) — a small, independently authored, runnable reference showing:
+[**Standalone ASP.NET Core + PostgreSQL example**](examples/README.md) — an independently authored reference showing:
 
 - JWT bearer authentication, a reusable organization authorization policy, and HTTP tests covering invalid tokens and duplicate claims.
 - A PostgreSQL repository using parameterized queries and async I/O.
 - Request validation, xUnit HTTP/unit tests, and PostgreSQL integration tests, all checked in CI.
+
+[**Synthetic telemetry parser**](examples/SyntheticTelemetry.Parser/README.md) — a separate C#/.NET sample validating a deliberately invented CSV format. It enforces fixed file, record and line limits; validates UTF-8, values and timestamp ordering; and tests malformed inputs without processing any proprietary telemetry format.
 
 This is **not copied from the private RacePal implementation**. It demonstrates engineering patterns, rather than revealing application internals or proving the full production stack. Run its unit tests with:
 
