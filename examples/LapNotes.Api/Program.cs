@@ -1,50 +1,62 @@
 using LapNotes.Api;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var authority = builder.Configuration["Auth:Authority"];
-var audience = builder.Configuration["Auth:Audience"];
-var connectionString = builder.Configuration.GetConnectionString("DemoDb");
+// Validate configuration on application start (not during composition), allowing
+// WebApplicationFactory to provide isolated configuration and a fake store in tests.
+builder.Services.AddOptions<DemoRuntimeOptions>()
+    .Configure<IConfiguration>((options, config) =>
+    {
+        options.Authority = config["Auth:Authority"];
+        options.Audience = config["Auth:Audience"];
+        options.ConnectionString = config.GetConnectionString("DemoDb");
+    })
+    .Validate(options => options.IsConfigured(),
+        "Provide an HTTPS Auth:Authority, Auth:Audience and ConnectionStrings:DemoDb.")
+    .ValidateOnStart();
 
-if (!Uri.TryCreate(authority, UriKind.Absolute, out var issuer)
-    || issuer.Scheme != Uri.UriSchemeHttps
-    || string.IsNullOrWhiteSpace(audience)
-    || string.IsNullOrWhiteSpace(connectionString))
-{
-    throw new InvalidOperationException(
-        "Configure Auth:Authority (HTTPS issuer), Auth:Audience and ConnectionStrings:DemoDb.");
-}
-
-builder.Services.AddSingleton(NpgsqlDataSource.Create(connectionString));
+builder.Services.AddSingleton(provider =>
+    NpgsqlDataSource.Create(provider.GetRequiredService<IOptions<DemoRuntimeOptions>>()
+        .Value.ConnectionString!));
 builder.Services.AddScoped<ILapNoteStore, PostgresLapNoteStore>();
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        options.Authority = authority;
-        options.Audience = audience;
+        options.Authority = builder.Configuration["Auth:Authority"];
+        options.Audience = builder.Configuration["Auth:Audience"];
         options.RequireHttpsMetadata = true;
+        options.MapInboundClaims = false;
+        options.TokenValidationParameters.ValidAlgorithms = [SecurityAlgorithms.RsaSha256];
+        options.TokenValidationParameters.ClockSkew = TimeSpan.FromSeconds(30);
     });
-builder.Services.AddAuthorization();
+
+// The tenant check applies to the entire route group, not individual handlers.
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy("TenantAccess", policy => policy
+        .RequireAuthenticatedUser()
+        .AddRequirements(new OrganizationRequirement()));
+builder.Services.AddSingleton<IAuthorizationHandler, OrganizationAuthorizationHandler>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentOrganization, CurrentOrganization>();
 
 var app = builder.Build();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Liveness checks do not touch the database and disclose no configuration.
 app.MapGet("/health/live", () => Results.Ok(new { status = "ok" }))
     .AllowAnonymous();
 
-var api = app.MapGroup("/api/demo/lap-notes").RequireAuthorization();
+var api = app.MapGroup("/api/demo/lap-notes").RequireAuthorization("TenantAccess");
 api.MapPost("/", async Task<IResult> (
-    CreateLapNoteRequest request, HttpContext context, ILapNoteStore store,
+    CreateLapNoteRequest request, ICurrentOrganization organization, ILapNoteStore store,
     CancellationToken cancellationToken) =>
 {
-    var organizationId = context.User.FindFirst("org_id")?.Value;
-    if (!OrganizationScope.IsValid(organizationId))
-        return Results.Forbid();
-
     var validationError = LapNoteValidator.Validate(request);
     if (validationError is not null)
         return Results.ValidationProblem(new Dictionary<string, string[]>
@@ -54,7 +66,7 @@ api.MapPost("/", async Task<IResult> (
 
     var note = new LapNote(
         Guid.NewGuid(),
-        organizationId!,
+        organization.Id,
         request.KartLabel!.Trim(),
         request.LapDurationMs,
         DateTimeOffset.UtcNow);
@@ -64,16 +76,14 @@ api.MapPost("/", async Task<IResult> (
 });
 
 api.MapGet("/{id:guid}", async Task<IResult> (
-    Guid id, HttpContext context, ILapNoteStore store,
+    Guid id, ICurrentOrganization organization, ILapNoteStore store,
     CancellationToken cancellationToken) =>
 {
-    var organizationId = context.User.FindFirst("org_id")?.Value;
-    if (!OrganizationScope.IsValid(organizationId))
-        return Results.Forbid();
-
-    // The tenant scope is supplied by the validated token and enforced in the SQL predicate.
-    var note = await store.FindAsync(id, organizationId!, cancellationToken);
+    var note = await store.FindAsync(id, organization.Id, cancellationToken);
     return note is null ? Results.NotFound() : Results.Ok(LapNoteResponse.From(note));
 });
 
 app.Run();
+
+// Required by WebApplicationFactory<Program> in the separate HTTP test assembly.
+public partial class Program;

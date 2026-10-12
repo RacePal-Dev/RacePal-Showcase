@@ -9,8 +9,19 @@ RacePal is a pre-release karting telemetry and performance-analysis platform. It
 ## Engineering highlights
 
 - **Local desktop:** a working .NET 10 WPF interface for drivers, karts, circuits, session metadata, and versioned setups.
-- **Reviewable backend sample:** an independently authored ASP.NET Core API with parameterized PostgreSQL queries, 17 xUnit tests, and 2 PostgreSQL integration tests.
+- **Reviewable backend sample:** an independently authored ASP.NET Core API with JWT authorization, HTTP security tests, and PostgreSQL integration tests.
 - **Security by design:** JWT validation, organization-scoped database access, documented trust boundaries, and CI secret scanning. The sample is not the proprietary RacePal server.
+
+## What this public repository proves
+
+| Directly reviewable evidence | Not demonstrated by this repository |
+| --- | --- |
+| Independently authored ASP.NET Core endpoints with HTTP/JWT boundary tests | Source code of the private RacePal hosted API |
+| Parameterized SQL and PostgreSQL integration tests | Deployed PostgreSQL roles, row-level security (RLS), or production infrastructure |
+| Actual WPF desktop screenshots with clearly fictional data | Public WPF source, telemetry processing results, or live deployment |
+| GitHub Actions, xUnit, full-history Gitleaks scans | Penetration testing or a real identity-provider integration |
+
+The source of the core RacePal product remains private. The standalone demo is a technical reference, **not a representative extract of RacePal's production API**.
 
 ## At a glance
 
@@ -27,9 +38,9 @@ The platform is not a production release. Hosted components and analysis feature
 
 [**Standalone ASP.NET Core + PostgreSQL example**](examples/README.md) — a small, independently authored, runnable reference showing:
 
-- JWT bearer authentication and authorization with a server-derived organization scope.
+- JWT bearer authentication, a reusable organization authorization policy, and HTTP tests covering invalid tokens and duplicate claims.
 - A PostgreSQL repository using parameterized queries and async I/O.
-- Request validation and xUnit unit tests, checked in CI.
+- Request validation, xUnit HTTP/unit tests, and PostgreSQL integration tests, all checked in CI.
 
 This is **not copied from the private RacePal implementation**. It demonstrates engineering patterns, rather than revealing application internals or proving the full production stack. Run its unit tests with:
 

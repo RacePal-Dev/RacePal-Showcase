@@ -7,7 +7,8 @@ This small .NET 10 reference project was **independently authored for the public
 - [Minimal ASP.NET Core API](LapNotes.Api/Program.cs): external JWT bearer authentication, server-derived organization scope, validation and HTTP responses.
 - [PostgreSQL adapter](LapNotes.Api/PostgresLapNoteStore.cs): asynchronous Npgsql commands, bound SQL parameters, and tenant-scoped reads.
 - [SQL schema](LapNotes.Api/schema.sql): minimal fictional records and an input range constraint.
-- [Unit tests](LapNotes.Tests/ValidationTests.cs): xUnit input-boundary and tenant-claim tests.
+- [Unit tests](LapNotes.Tests/ValidationTests.cs): xUnit input-boundary and JSON response-shape tests.
+- [HTTP security tests](LapNotes.Tests/HttpSecurityTests.cs): JWT validation, 401/403/404 responses, rejected conflicting organization claims, and tenant scoping.
 - [PostgreSQL integration tests](LapNotes.IntegrationTests/PostgresIsolationTests.cs): actual database tests for cross-tenant isolation and SQL-injection-safe parameters.
 
 ## Run tests
@@ -40,12 +41,14 @@ Then:
 dotnet run --project examples/LapNotes.Api/LapNotes.Api.csproj
 ```
 
+A named authorization policy requires **exactly one** syntactically valid `org_id` claim. The app assumes the configured identity provider is trusted to issue organization claims.
+
 `GET /health/live` is public. `POST /api/demo/lap-notes` and `GET /api/demo/lap-notes/{id}` require a valid token issued by the configured identity provider with a trusted `org_id` claim. No live database, client credentials, signing key, or real identity-provider configuration is included.
 
 ## Boundaries
 
 - The sample is not telemetry ingestion; it stores fictional manually entered lap notes.
-- CI tests database queries and validation but not end-to-end JWT issuance, API authorization with real tokens, deployment, performance or penetration testing.
+- CI tests actual HTTP JWT validation with locally signed, disposable RSA tokens, plus isolated PostgreSQL queries. This is **not** proof of integration with a real identity provider, deployed tenant permissions, production operation or penetration resistance.
 - A production service would also need migrations, operational rate limits, auditing, exception mapping, strict request limits and deployment controls.
 
 See the [security threat model](../docs/14-EXAMPLE-THREAT-MODEL.md).
